@@ -17,8 +17,11 @@ def geodesic_eq(x,y,k=None):
     du0 = y[1]
     dv0 = y[3]
 
+    u0 = y[0]
+    v0 = y[2]
+
     u,v = sp.symbols('u v')
-    points = [[c.subs({u:u0,v:v0}) for c in r for u0,v0 in zip(y[0],y[2])] for r in k]
+    points = [[c.subs({u:u0[0], v:v0[0]}) for c in r] for r in k]
     # 111 112 122
     # 211 212 222
 
@@ -30,13 +33,12 @@ def geodesic_eq(x,y,k=None):
 
 def bc(ya,yb, p=None):
     u0,v0,u1,v1 = p
-    print(ya.shape)
     return np.array([ya[0]-u0,yb[0]-v0,ya[2]-u1,yb[2]-v1])
 
 def solve_geodesic(points,step,christoffel_symbols):
     s = np.arange(0, 1, step)
-    guess = np.random.randn(4,len(s))
-    return solve_bvp(lambda x,y: geodesic_eq(x,y,christoffel_symbols), lambda ya,yb: bc(ya,yb,points), s, guess)
+    guess = np.zeros((4,len(s)))
+    return solve_bvp(lambda x,y: geodesic_eq(x,y,christoffel_symbols), lambda ya,yb: bc(ya,yb,points), s, guess,verbose=1)
 
 def sphere(u,v):
     return np.sin(v) * np.cos(u),np.sin(v) * np.sin(u),np.cos(v)
@@ -46,13 +48,11 @@ def plot_sphere(christoffel_symbols):
     import matplotlib.pylab as plt
 
     step = 0.015
-    points = [0.0, 0.0, math.pi / 2, math.pi / 2]
+    points = [1, 1, math.pi / 2, math.pi / 2]
     soln = solve_geodesic(points, step, christoffel_symbols)
     geodesic = soln.y
-
-    #print(geodesic)
     N = geodesic.shape[1]
-    u, v = plt.meshgrid(np.linspace(0, 2*np.pi, N), np.linspace(0, np.pi, N))
+    u, v = plt.meshgrid(np.linspace(0, 2*np.pi, N), np.linspace(0, 2*np.pi, N))
     x,y,z = sphere(u,v)
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
@@ -66,10 +66,10 @@ def plot_sphere(christoffel_symbols):
 
     u,v = [points[0],points[2]],[points[1],points[3]]
     x,y,z = sphere(u,v)
-    ax.scatter(x,y,z)
+    ax.scatter(x,y,z,c="r")
 
     # plot the parametrized data on to the sphere
-    u, v = geodesic[:, 0], geodesic[:, 2]
+    u, v = geodesic[0, :], geodesic[2,:]
     x,y,z = sphere(u,v)
 
     ax.plot(x, y, z,"r")
@@ -79,8 +79,12 @@ if __name__ == "__main__":
     u,v = sp.symbols('u v')
 
 
-    g = Matrix([[sp.cos(v)**2,0.0],\
-                   [0.0,1]])
+
+    #g = Matrix([[sp.cos(u)**2,0.0],\
+    #               [0.0,1]])
+
+    g = Matrix([[1.0,0.0],\
+                   [0.0,sp.sin(u)**2]])
     christoffel_symbols = christoffel_symbols_diagonal_metric(g,u,v)
     expected = [[0,-2*sp.tan(v),0],[1/2 * sp.sin(2*v), 0, 0]]
     print(christoffel_symbols)
